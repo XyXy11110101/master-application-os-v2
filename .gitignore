@@ -1,0 +1,11 @@
+node_modules/
+.webpack/
+out/
+artifacts/
+test-results/
+runtime/
+*.log
+.env*
+!.env.example
+*.sqlite*
+*.db*

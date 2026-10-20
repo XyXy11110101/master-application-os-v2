@@ -1,0 +1,74 @@
+{
+  "Northwestern SESP": {
+    "filename": "northwestern.png",
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Northwestern_University_seal.svg/250px-Northwestern_University_seal.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+    "page": "https://en.wikipedia.org/wiki/File:Northwestern_University_seal.svg",
+    "bytes": 59409
+  },
+  "Stanford": {
+    "filename": "stanford.png",
+    "source": "https://www.stanford.edu/icon1.png?icon1.2k3tekyi17a_q.png?dpl=12d2275c48d2f16430c650f3bc91386e628da7ca30dc04a99662e61c5064fa09366162316136383165376266343730303039663263323765",
+    "page": "https://www.stanford.edu",
+    "bytes": 15035
+  },
+  "Cambridge": {
+    "filename": "cambridge.png",
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Coat_of_Arms_of_the_University_of_Cambridge.svg/250px-Coat_of_Arms_of_the_University_of_Cambridge.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+    "page": "https://en.wikipedia.org/wiki/File:University_of_Cambridge_coat_of_arms.svg",
+    "bytes": 70409
+  },
+  "Berkeley": {
+    "filename": "berkeley.png",
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/Seal_of_University_of_California%2C_Berkeley.svg/250px-Seal_of_University_of_California%2C_Berkeley.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+    "page": "https://en.wikipedia.org/wiki/File:Seal_of_University_of_California,_Berkeley.svg",
+    "bytes": 64517
+  },
+  "University of Sydney": {
+    "filename": "sydney.png",
+    "source": "https://www.sydney.edu.au/etc.clientlibs/corporate-commons/clientlibs/foundation/resources/corporate-frontend/assets/img/favicon/favicon-96x96.png",
+    "page": "https://www.sydney.edu.au",
+    "bytes": 3690
+  },
+  "Harvard": {
+    "filename": "harvard.png",
+    "source": "https://www.harvard.edu/wp-content/uploads/2020/10/cropped-logo-branding-compressed.png?w=180",
+    "page": "https://www.harvard.edu",
+    "bytes": 6876
+  },
+  "UNSW Sydney": {
+    "filename": "unsw.png",
+    "source": "https://www.unsw.edu.au/etc.clientlibs/unsw-common/clientlibs/clientlib-unsw-web-resources/resources/apple-touch-icon-180x180.png",
+    "page": "https://www.unsw.edu.au",
+    "bytes": 4010
+  },
+  "UCL": {
+    "filename": "ucl.png",
+    "source": "https://thumb.wikimedia.org/wikipedia/en/thumb/c/c2/UCL_Logo%2C_plain_background.svg/250px-UCL_Logo%2C_plain_background.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+    "page": "https://en.wikipedia.org/wiki/File:UCL_Logo,_plain_background.svg",
+    "bytes": 3987
+  },
+  "The University of Hong Kong": {
+    "filename": "hku.png",
+    "source": "https://www.hku.hk/etc.clientlibs/hkucms/clientlibs/clientlib-site/resources/apple-touch-icon-180x180.png",
+    "page": "https://www.hku.hk",
+    "bytes": 23211
+  },
+  "University of Melbourne": {
+    "filename": "melbourne.png",
+    "source": "https://thumb.wikimedia.org/wikipedia/en/thumb/5/50/The_University_of_Melbourne_Logo.svg/250px-The_University_of_Melbourne_Logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+    "page": "https://en.wikipedia.org/wiki/File:The_University_of_Melbourne_Logo.svg",
+    "bytes": 26657
+  },
+  "Columbia": {
+    "filename": "columbia.png",
+    "source": "https://www.tc.columbia.edu/apple-touch-icon.png",
+    "page": "https://www.tc.columbia.edu",
+    "bytes": 10206
+  },
+  "Oxford": {
+    "filename": "oxford.png",
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Arms_of_University_of_Oxford.svg/250px-Arms_of_University_of_Oxford.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+    "page": "https://en.wikipedia.org/wiki/File:Arms_of_University_of_Oxford.svg",
+    "bytes": 43637
+  }
+}
