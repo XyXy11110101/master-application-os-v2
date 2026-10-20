@@ -3,7 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import type {
-  Action, AdoptInput, ApiSettings, Applicability, CheckResult, Contact, Evidence,
+  Action, AdoptInput, ApiSettings, Applicability, CheckResult, Contact, Evidence, ThinkingMode,
   LegacyPreview, Material, MaterialVersion, Necessity, Progress, ProgressInput,
   Project, Recommendation, Requirement, ResearchRun, SaveContactInput,
   SaveProjectInput, SaveRecommendationInput, SaveRequirementInput,
@@ -69,7 +69,7 @@ const defaultProgress = (requirementId: string): Progress => ({
 const defaultSubmission = (projectId: string): Submission => ({
   projectId, preparedAt: '', submittedAt: '', confirmedAt: '', receivedAt: '', receipt: '', note: '', revision: 0,
 });
-const defaultApi = (): ApiSettings => ({ baseUrl: '', model: '', hasKey: false, revision: 0 });
+const defaultApi = (): ApiSettings => ({ baseUrl: '', model: '', hasKey: false, revision: 0, thinkingMode: 'provider_default' });
 
 export class DeskStore {
   readonly root: string;
@@ -200,7 +200,7 @@ export class DeskStore {
       materials: this.all('material'), versions: this.all('version'), checks: this.all('check'),
       contacts: this.all('contact'), recommendations: this.all('recommendation'),
       research: this.all<ResearchRun>('research').reverse(),
-      apiSettings: this.get<ApiSettings>('settings', 'api') ?? defaultApi(),
+      apiSettings: { ...defaultApi(), ...this.get<ApiSettings>('settings', 'api') },
       actions: [], dataPath: this.root,
     };
     snapshot.actions = this.actions(snapshot);
@@ -537,13 +537,14 @@ export class DeskStore {
       } satisfies Submission);
     });
   }
-  saveApiSettings(input: { baseUrl: string; model: string; hasKey?: boolean; expectedRevision: number }): void {
+  saveApiSettings(input: { baseUrl: string; model: string; hasKey?: boolean; thinkingMode?: ThinkingMode; expectedRevision: number }): void {
     this.atomic(() => {
       const current = this.get<ApiSettings>('settings', 'api') ?? defaultApi();
       revision(current.revision, input.expectedRevision);
       this.put('settings', 'api', {
         baseUrl: input.baseUrl ? url(input.baseUrl) : '', model: clean(input.model, '模型', 300),
         hasKey: input.hasKey ?? current.hasKey, revision: current.revision + 1,
+        thinkingMode: oneOf(input.thinkingMode ?? current.thinkingMode ?? 'provider_default', ['provider_default', 'disabled', 'enabled'] as const, '思考模式'),
       } satisfies ApiSettings);
     });
   }

@@ -1,3 +1,4 @@
+const { resolveSmokeTarget, inspectSmokeTarget } = require('./smoke-target.cjs');
 const capture = require('./capture.cjs');
 // Packaged-app integration test. Set DESK_NATIVE_PICKER=1 to drive the real
 // Windows file dialog manually; otherwise the Electron dialog return is stubbed.
@@ -10,16 +11,19 @@ const os = require('node:os');
 
 async function main() {
   const root = path.resolve(__dirname, '..'), output = path.join(root, 'artifacts');
+  fs.mkdirSync(output, { recursive: true });
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'desk-v2-workflow-'));
   const file = path.join(data, 'sample-statement.txt');
   fs.writeFileSync(file, 'A thoughtful statement about learning design and education.\n');
-  const evidence = { startedAt: new Date().toISOString(), data, file, nativePicker: process.env.DESK_NATIVE_PICKER === '1', assertions: [], errors: [] };
+  const evidence = { target: null, startedAt: new Date().toISOString(), data, file, nativePicker: process.env.DESK_NATIVE_PICKER === '1', assertions: [], errors: [] };
   let application;
   try {
+    const selected = resolveSmokeTarget(root);
     application = await electron.launch({
-      executablePath: path.join(root, 'out', 'Application Desk V2-win32-x64', 'ApplicationDesk.exe'),
+      executablePath: selected.executablePath,
       env: { ...process.env, DESK_DATA_HOME: data, DESK_SHOW_WINDOW: process.env.DESK_SHOW_WINDOW || '0' },
     });
+    evidence.target = await inspectSmokeTarget(application, selected);
     const page = await application.firstWindow();
     page.on('pageerror', error => evidence.errors.push(error.message));
     await page.getByLabel('目标入学年份', { exact: true }).selectOption('2027');

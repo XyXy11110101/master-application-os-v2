@@ -13,6 +13,7 @@ module.exports = {
   rebuildConfig: {},
   hooks: {
     generateAssets: async () => require('./scripts/prepare-runtime.cjs')(),
+    postMake: async (_config, results) => require('./scripts/normalize-zip.cjs').normalizeWindowsResults(results),
   },
   makers: [
     { name: '@electron-forge/maker-squirrel', config: { name: 'ApplicationDeskV2', setupExe: 'ApplicationDeskV2-Setup.exe' } },

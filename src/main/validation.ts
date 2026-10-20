@@ -53,6 +53,7 @@ export const schemas = {
   }).strict(),
   saveApiSettings: z.object({
     baseUrl: text, model: z.string().max(500), key: z.string().max(20000).optional(), expectedRevision: revision,
+    thinkingMode: z.enum(['provider_default', 'disabled', 'enabled']).optional(),
   }).strict(),
   startResearch: z.object({ projectId: id }).strict(),
   cancelResearch: z.object({ runId: id }).strict(),

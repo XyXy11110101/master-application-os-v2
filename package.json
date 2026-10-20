@@ -1,7 +1,7 @@
 {
   "name": "application-desk-v2",
   "productName": "Application Desk V2",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "A local-first university application workspace",
   "main": ".webpack/main/index.cjs",
@@ -10,7 +10,7 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make",
+    "make": "node scripts/build-release.cjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:desktop": "node scripts/desktop-smoke.cjs",

@@ -1,3 +1,4 @@
+const { resolveSmokeTarget, inspectSmokeTarget } = require('./smoke-target.cjs');
 const capture = require('./capture.cjs');
 const { _electron: electron } = require('playwright');
 const { expect } = require('@playwright/test');
@@ -11,18 +12,20 @@ async function main() {
   const output = path.join(root, 'artifacts');
   fs.mkdirSync(output, { recursive: true });
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'desk-v2-smoke-'));
-  const executablePath = process.env.DESK_EXE || path.join(root, 'out', 'Application Desk V2-win32-x64', 'ApplicationDesk.exe');
+  let selected;
   const launch = () => electron.launch({
-    executablePath,
+    executablePath: selected.executablePath,
     env: { ...process.env, DESK_DATA_HOME: data, DESK_SHOW_WINDOW: process.env.DESK_SHOW_WINDOW || '0' },
     timeout: 30000,
   });
-  const evidence = { dataPath: data, executablePath, startedAt: new Date().toISOString(), assertions: [], errors: [] };
+  const evidence = { dataPath: data, target: null, startedAt: new Date().toISOString(), assertions: [], errors: [] };
   let application;
   async function captureNative(filename) { await capture(application, path.join(output, filename)); }
 
   try {
+    selected = resolveSmokeTarget(root);
     application = await launch();
+    evidence.target = await inspectSmokeTarget(application, selected);
     let page = await application.firstWindow();
     page.on('pageerror', error => evidence.errors.push(error.message));
     await page.waitForFunction(() => !!window.desk);
@@ -98,6 +101,7 @@ async function main() {
     evidence.assertions.push('640px native window has no page horizontal overflow');
     await application.close();
     application = await launch();
+    await inspectSmokeTarget(application, selected, evidence.target);
     page = await application.firstWindow();
     await page.waitForFunction(() => !!window.desk);
     const after = await page.evaluate(() => window.desk.getSnapshot());
@@ -107,7 +111,6 @@ async function main() {
     assert.equal(after.workspace.demo, true);
     evidence.assertions.push('workspace selection and progress survive full Electron process restart');
     assert.deepEqual(evidence.errors, []);
-    evidence.completedAt = new Date().toISOString();
     evidence.status = 'passed';
   } catch (error) {
     evidence.status = 'failed';
@@ -115,6 +118,7 @@ async function main() {
     throw error;
   } finally {
     if (application) { await application.evaluate(({ dialog }) => { dialog.showMessageBoxSync = () => 1; }).catch(() => {}); await application.close().catch(() => {}); }
+    evidence.completedAt = new Date().toISOString();
     fs.writeFileSync(path.join(output, 'desktop-smoke.json'), JSON.stringify(evidence, null, 2));
   }
   console.log(JSON.stringify(evidence, null, 2));

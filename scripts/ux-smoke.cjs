@@ -1,3 +1,4 @@
+const { resolveSmokeTarget, inspectSmokeTarget } = require('./smoke-target.cjs');
 const capture = require('./capture.cjs');
 // Isolated hidden Electron UI regression; native dialogs are test doubles.
 const { _electron: electron } = require('playwright');
@@ -11,10 +12,12 @@ async function main() {
   const root = path.resolve(__dirname, '..'), output = path.join(root, 'artifacts');
   fs.mkdirSync(output, { recursive: true });
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'desk-v2-ux-'));
-  const report = { startedAt: new Date().toISOString(), data, assertions: [], errors: [] };
+  const report = { target: null, startedAt: new Date().toISOString(), data, assertions: [], errors: [] };
   let app;
   try {
-    app = await electron.launch({ executablePath: path.join(root, 'out/Application Desk V2-win32-x64/ApplicationDesk.exe'), env: { ...process.env, DESK_DATA_HOME: data, DESK_SHOW_WINDOW: '0' } });
+    const selected = resolveSmokeTarget(root);
+    app = await electron.launch({ executablePath: selected.executablePath, env: { ...process.env, DESK_DATA_HOME: data, DESK_SHOW_WINDOW: '0' } });
+    report.target = await inspectSmokeTarget(app, selected);
     const page = await app.firstWindow(); page.setDefaultTimeout(10000);
     page.on('pageerror', e => report.errors.push(e.message));
     await page.getByLabel('目标入学年份', { exact: true }).selectOption('custom');
@@ -129,6 +132,30 @@ async function main() {
     await page.locator('.detail-pane').getByRole('button', { name: '放弃修改', exact: true }).click();
     report.assertions.push('a restored workspace has separate session drafts even when its stored workspace ID is identical');
     await capture(app, path.join(output, 'v020-material-versions.png'));
+    await page.getByRole('button', { name: '设置', exact: true }).click();
+    await page.getByRole('button', { name: '模型服务', exact: true }).click();
+    const apiPanel = page.locator('.settings-section').filter({ has: page.getByRole('heading', { name: '项目研究 API', exact: true }) });
+    await apiPanel.getByLabel('服务地址', { exact: true }).fill('https://api.deepseek.com');
+    await apiPanel.getByLabel('模型名称', { exact: true }).fill('deepseek-flash');
+    await expect(apiPanel.getByLabel('思考模式', { exact: true })).toHaveValue('provider_default');
+    await apiPanel.getByLabel('思考模式', { exact: true }).selectOption('disabled');
+    await apiPanel.getByRole('button', { name: '保存设置', exact: true }).click();
+    await expect.poll(() => page.evaluate(async () => (await window.desk.getSnapshot()).apiSettings.thinkingMode)).toBe('disabled');
+    await expect(apiPanel.getByRole('button', { name: '测试连接', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: '现在', exact: true }).click();
+    await page.getByRole('button', { name: '设置', exact: true }).click();
+    await expect(apiPanel.getByLabel('思考模式', { exact: true })).toHaveValue('disabled');
+    await expect(apiPanel.getByLabel('API 密钥', { exact: true })).toHaveValue('');
+    await apiPanel.getByLabel('服务地址', { exact: true }).fill('https://api.example.test/v1');
+    await expect(apiPanel.getByLabel('思考模式', { exact: true })).toHaveCount(0);
+    await apiPanel.getByRole('button', { name: '放弃修改', exact: true }).click();
+    await expect(apiPanel.getByLabel('服务地址', { exact: true })).toHaveValue(/^https:\/\/api\.deepseek\.com\/?$/);
+    await expect(apiPanel.getByLabel('思考模式', { exact: true })).toHaveValue('disabled');
+    const savedApi = (await page.evaluate(() => window.desk.getSnapshot())).apiSettings;
+    assert.equal(new URL(savedApi.baseUrl).hostname, 'api.deepseek.com');
+    assert.equal(savedApi.thinkingMode, 'disabled');
+    assert.equal(savedApi.hasKey, false);
+    report.assertions.push('official DeepSeek mode saves without credentials, survives navigation, hides for other providers and restores on discard; no connection request is sent');
     assert.deepEqual(report.errors, []);
     report.status = 'passed';
   } catch (error) {

@@ -76,8 +76,9 @@ export interface ResearchRun {
   inputTokens: number; outputTokens: number; usageUnknown: boolean;
   queue: string[]; visited: string[]; elapsedMs: number; revision: number;
 }
+export type ThinkingMode = 'provider_default' | 'disabled' | 'enabled';
 export interface ApiSettings {
-  baseUrl: string; model: string; hasKey: boolean; revision: number;
+  baseUrl: string; model: string; hasKey: boolean; revision: number; thinkingMode?: ThinkingMode;
 }
 export interface Snapshot {
   workspace: Workspace | null; projects: Project[]; requirements: Requirement[];
@@ -117,7 +118,7 @@ export interface AdoptInput {
   runId: Id; expectedRevision: number;
   selections: Array<{ key: string; expectedRequirementRevision?: number; replaceUserEdit?: boolean }>;
 }
-export interface ApiSettingsInput { baseUrl: string; model: string; key?: string; expectedRevision: number; }
+export interface ApiSettingsInput { baseUrl: string; model: string; key?: string; thinkingMode?: ThinkingMode; expectedRevision: number; }
 export interface ParsedDocument {
   text: string; pages: number | null; notes: string[];
 }

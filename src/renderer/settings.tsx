@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArchiveRestore, ArrowRight, Database, Download, FolderInput, KeyRound, Plus, ShieldCheck, Sparkles, Upload, UserRound } from 'lucide-react';
 import { ApiSettingsInput, LegacyPreview, Snapshot } from '../shared/types';
+import { isOfficialDeepSeek } from '../shared/api';
 import { Badge, Button, Disclosure, Feedback, Field, Form, Modal, useTask } from './ui';
 import { ContactEditor } from './forms';
 import { entryLabel } from '../shared/target';
@@ -43,7 +44,7 @@ function WorkspaceSettings({ snapshot: s }: { snapshot: Snapshot }) {
   </>;
 }
 function ApiSettingsPanel({ snapshot: s }: { snapshot: Snapshot }) {
-  const apiDraft = useDraft<ApiSettingsInput>('api', () => ({ baseUrl: s.apiSettings.baseUrl || '', model: s.apiSettings.model || '', key: '', expectedRevision: s.apiSettings.revision }));
+  const apiDraft = useDraft<ApiSettingsInput>('api', () => ({ baseUrl: s.apiSettings.baseUrl || '', model: s.apiSettings.model || '', thinkingMode: s.apiSettings.thinkingMode ?? 'provider_default', key: '', expectedRevision: s.apiSettings.revision }));
   const draft = apiDraft.value, setDraft = apiDraft.set;
   const task = useTask(), testing = useTask();
   return <>
@@ -51,6 +52,7 @@ function ApiSettingsPanel({ snapshot: s }: { snapshot: Snapshot }) {
       <Form onSubmit={() => task.run(async () => { await window.desk.saveApiSettings({ ...draft, key: draft.key || undefined }); const next = await window.desk.getSnapshot(); apiDraft.saved({ ...draft, key: '', expectedRevision: next.apiSettings.revision }); }, '模型设置已保存')}>
         <Field label="服务地址"><input type="url" value={draft.baseUrl} onChange={e => setDraft(d => ({ ...d, baseUrl: e.target.value }))} placeholder="https://your-provider.example/v1" autoComplete="off" required/></Field>
         <Field label="模型名称"><input value={draft.model} onChange={e => setDraft(d => ({ ...d, model: e.target.value }))} placeholder="服务商提供的模型标识" autoComplete="off" required/></Field>
+        {isOfficialDeepSeek(draft.baseUrl) && <Field label="思考模式" hint="连接测试和官网研究使用同一模式。服务默认可能随服务商调整。"><select value={draft.thinkingMode ?? 'provider_default'} onChange={e => setDraft(d => ({ ...d, thinkingMode: e.target.value as ApiSettingsInput['thinkingMode'] }))}><option value="provider_default">服务默认</option><option value="disabled">关闭</option><option value="enabled">开启</option></select></Field>}
         <Field label="API 密钥" hint={s.apiSettings.hasKey ? '留空保留已保存的密钥；输入新密钥可替换。' : '密钥独立加密保存，不进入备份和导出文件。'}><input type="password" value={draft.key || ''} onChange={e => setDraft(d => ({ ...d, key: e.target.value }))} placeholder={s.apiSettings.hasKey ? '已保存，输入以替换' : '粘贴密钥'} autoComplete="new-password"/></Field>
         <div className="save-bar"><Button className="primary" type="submit" busy={task.busy}><KeyRound size={15}/>保存设置</Button><Feedback task={task}/>{apiDraft.dirty && <Button onClick={apiDraft.discard}>放弃修改</Button>}</div>
       </Form>

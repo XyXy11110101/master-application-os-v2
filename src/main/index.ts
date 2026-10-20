@@ -123,7 +123,7 @@ function apiConfig() {
   const settings = store.snapshot().apiSettings;
   const key = credentials.read(store.root);
   if (!settings.baseUrl || !settings.model || !key) throw new Error('请先在设置中填写服务地址、模型和密钥。');
-  return { baseUrl: settings.baseUrl, model: settings.model, key };
+  return { baseUrl: settings.baseUrl, model: settings.model, thinkingMode: settings.thinkingMode, key };
 }
 function begin(run: ResearchRun) {
   if ([...jobs.values()].some(value => value.store === store)) throw new Error('已有研究正在运行，请先等待或停止。');
@@ -225,7 +225,7 @@ function registerHandlers() {
     const previous = input.key !== undefined ? credentials.read(store.root) : undefined;
     try {
       if (input.key !== undefined) credentials.write(store.root, input.key.trim());
-      store.saveApiSettings({ baseUrl: input.baseUrl, model: input.model, hasKey: credentials.has(store.root), expectedRevision: input.expectedRevision });
+      store.saveApiSettings({ baseUrl: input.baseUrl, model: input.model, thinkingMode: input.thinkingMode, hasKey: credentials.has(store.root), expectedRevision: input.expectedRevision });
     } catch (error) {
       if (previous !== undefined) credentials.write(store.root, previous);
       throw error;

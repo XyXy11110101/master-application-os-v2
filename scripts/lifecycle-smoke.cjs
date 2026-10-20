@@ -1,3 +1,4 @@
+const { resolveSmokeTarget, inspectSmokeTarget } = require('./smoke-target.cjs');
 // Packaged Electron integration test, isolated from all personal workspaces.
 // File/save dialog return values are STUBBED. This script does not validate the
 // native Windows picker or install/uninstall the app. No model service is called.
@@ -68,7 +69,7 @@ async function main() {
   const output = path.join(repository, 'artifacts');
   fs.mkdirSync(output, { recursive: true });
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'desk-v2-lifecycle-'));
-  const executable = path.resolve(process.env.DESK_EXE || path.join(repository, 'out', 'Application Desk V2-win32-x64', 'ApplicationDesk.exe'));
+  let selected;
   const pdfPath = path.join(data, 'synthetic-lifecycle.pdf');
   const archivePath = path.join(data, 'workspace-backup.zip');
   const text = 'Lifecycle PDF check passes.';
@@ -77,7 +78,7 @@ async function main() {
   fs.writeFileSync(pdfPath, pdf);
   const evidence = {
     startedAt: new Date().toISOString(),
-    executable,
+    target: null,
     data,
     dialogMode: 'stubbed Electron showOpenDialog/showSaveDialog return values',
     windowMode: 'hidden BrowserWindow; no current desktop interaction',
@@ -98,10 +99,11 @@ async function main() {
   async function launch(phase) {
     assert.equal(application, undefined, 'previous application must be closed before restart');
     application = await electron.launch({
-      executablePath: executable,
+      executablePath: selected.executablePath,
       env: { ...process.env, DESK_DATA_HOME: data, DESK_SHOW_WINDOW: '0' },
       timeout: 60000,
     });
+    evidence.target = await inspectSmokeTarget(application, selected, evidence.target);
     page = await application.firstWindow();
     page.on('pageerror', error => evidence.errors.push({ phase, message: error.message }));
     await expect.poll(
@@ -156,7 +158,7 @@ async function main() {
   }
 
   try {
-    evidence.executableSha256 = digest(fs.readFileSync(executable));
+    selected = resolveSmokeTarget(repository);
     const initialRuntime = await launch('initial');
     assert.equal(initialRuntime.encryptionAvailable, true, 'native safeStorage must be available on this Windows user account');
     let state = await snapshot();

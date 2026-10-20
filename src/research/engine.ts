@@ -7,9 +7,10 @@ import * as cheerio from 'cheerio';
 import type { Evidence, Limit, Necessity, Project, ResearchCandidate, ResearchRun, RequirementKind } from '../shared/types';
 import { parsePdfBuffer } from './documents';
 import { degreeLabels, entryLabel, projectScope } from '../shared/target';
-import type { DegreeLevel } from '../shared/types';
+import type { DegreeLevel, ThinkingMode } from '../shared/types';
+import { isOfficialDeepSeek } from '../shared/api';
 
-export interface ResearchSettings { baseUrl: string; model: string; key: string; }
+export interface ResearchSettings { baseUrl: string; model: string; key: string; thinkingMode?: ThinkingMode; }
 export interface ResearchInput {
   run: ResearchRun; project: Project; settings: ResearchSettings; cacheDir: string;
   /** Offline fixture transport. Production never passes this. */
@@ -301,10 +302,23 @@ function endpoint(settings: ResearchSettings): string {
   url.pathname = `${url.pathname.replace(/\/+$/, '').replace(/\/chat\/completions$/, '')}/chat/completions`;
   return url.href;
 }
+function chatRequest(
+  settings: ResearchSettings,
+  messages: Array<{ role: 'system' | 'user'; content: string }>,
+  generation: { max_tokens: number; temperature?: number },
+) {
+  const mode = settings.thinkingMode ?? 'provider_default';
+  return {
+    model: settings.model, ...generation, messages,
+    ...(isOfficialDeepSeek(settings.baseUrl) && mode !== 'provider_default' ? { thinking: { type: mode } } : {}),
+  };
+}
 function responseContent(data: any): string {
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content === 'string') return content;
-  if (Array.isArray(content)) return content.map(part => typeof part?.text === 'string' ? part.text : '').join('\n');
+  if (Array.isArray(content)) return content
+    .filter(part => part && (part.type === undefined || part.type === 'text' || part.type === 'output_text'))
+    .map(part => typeof part.text === 'string' ? part.text : '').join('\n');
   throw new Error('API 没有返回可读取的文本。');
 }
 export function parseJsonResponse(text: string): any {
@@ -319,7 +333,10 @@ async function modelRequest(
   input: ResearchInput, run: ResearchRun, purpose: 'extract' | 'review',
   system: string, payload: unknown, signal: AbortSignal, publish: () => void,
 ): Promise<any> {
-  const cacheKey = hash(JSON.stringify({ version: PROMPT_VERSION, purpose, endpoint: endpoint(input.settings), model: input.settings.model, system, payload }));
+  const request = chatRequest(input.settings,
+    [{ role: 'system', content: system }, { role: 'user', content: JSON.stringify(payload) }],
+    { temperature: 0, max_tokens: purpose === 'extract' ? 5000 : 2000 });
+  const cacheKey = hash(JSON.stringify({ version: PROMPT_VERSION, purpose, endpoint: endpoint(input.settings), request }));
   const cachedPath = path.join(input.cacheDir, 'model', `${cacheKey}.json`);
   const cache = await loadJson<{ content: string }>(cachedPath);
   if (cache) {
@@ -338,10 +355,7 @@ async function modelRequest(
   const response = await (input.fetchImpl || fetch)(endpoint(input.settings), {
     method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
     headers: { 'Content-Type': 'application/json', ...(input.settings.key ? { Authorization: `Bearer ${input.settings.key}` } : {}) },
-    body: JSON.stringify({
-      model: input.settings.model, temperature: 0, max_tokens: purpose === 'extract' ? 5000 : 2000,
-      messages: [{ role: 'system', content: system }, { role: 'user', content: JSON.stringify(payload) }],
-    }),
+    body: JSON.stringify(request),
   });
   const bytes = await boundedBody(response, MAX_MODEL_RESPONSE_BYTES);
   if (!response.ok) {
@@ -742,16 +756,20 @@ export async function runResearch(
   return structuredClone(run);
 }
 
-export async function testApi(settings: ResearchSettings): Promise<{ message: string }> {
+export async function testApi(settings: ResearchSettings, fetchImpl: typeof fetch = fetch): Promise<{ message: string }> {
   if (!settings.model.trim()) throw new Error('请填写模型名称。');
-  const response = await fetch(endpoint(settings), {
+  const response = await fetchImpl(endpoint(settings), {
     method: 'POST', signal: AbortSignal.timeout(30000),
     headers: { 'Content-Type': 'application/json', ...(settings.key ? { Authorization: `Bearer ${settings.key}` } : {}) },
-    body: JSON.stringify({ model: settings.model, max_tokens: 8, messages: [{ role: 'user', content: 'Reply only OK.' }] }),
+    body: JSON.stringify(chatRequest(settings, [{ role: 'user', content: 'Reply only OK.' }], { max_tokens: 64 })),
   });
   const body = await boundedBody(response, 200000);
   if (!response.ok) throw new Error(`连接测试返回 HTTP ${response.status}。`);
-  try { responseContent(JSON.parse(new TextDecoder().decode(body))); }
+  let data: any;
+  let content: string;
+  try { data = JSON.parse(new TextDecoder().decode(body)); content = responseContent(data); }
   catch { throw new Error('API 没有返回兼容的文本响应。'); }
+  if (data?.choices?.[0]?.finish_reason === 'length') throw new Error('连接测试的响应被输出长度截断，未确认有效正文。请检查模型和思考模式。');
+  if (!content.trim()) throw new Error('连接测试没有收到有效正文。请检查模型和思考模式。');
   return { message: '连接成功。测试发送了一个简短请求，可能产生少量服务商费用。' };
 }

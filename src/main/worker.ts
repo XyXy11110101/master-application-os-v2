@@ -1,12 +1,11 @@
 import type { Project, ResearchRun, Requirement, MaterialVersion } from '../shared/types';
-import { runResearch, testApi } from '../research/engine';
+import { runResearch, testApi, type ResearchSettings } from '../research/engine';
 import { parseDocument, checkDocument } from '../research/documents';
 
-type Config = { baseUrl: string; model: string; key: string };
 type Request =
-  | { type: 'research'; run: ResearchRun; project: Project; settings: Config; cacheDir: string }
+  | { type: 'research'; run: ResearchRun; project: Project; settings: ResearchSettings; cacheDir: string }
   | { type: 'check'; file: string; requirement: Requirement; version: MaterialVersion }
-  | { type: 'test'; settings: Config }
+  | { type: 'test'; settings: ResearchSettings }
   | { type: 'cancel' };
 const controller = new AbortController();
 let busy = false;
